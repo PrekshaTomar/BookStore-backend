@@ -3,70 +3,126 @@ import Book from "../models/bookModel.js";
 
 const router = express.Router();
 
-// POST /books/add
-router.post("/add", async (req, res) => {
+/**
+ * @route   POST /books
+ * @desc    Create a new book (with validation)
+ */
+router.post("/", async (req, res) => {
   try {
-    const { title, author, genre, publishedDate } = req.body;
-    const newBook = new Book({ title, author, genre, publishedDate });
+    const { title, author, publishYear } = req.body;
+
+    // Validation
+    if (!title || !author || !publishYear) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide title, author, and publish year",
+      });
+    }
+
+    const newBook = new Book({
+      title,
+      author,
+      publishYear,
+    });
+
     await newBook.save();
-    res.status(201).json({ message: "✅ Book added successfully", book: newBook });
-  } catch (error) {
-    res.status(500).json({ message: "❌ Error adding book", error: error.message });
-  }
-});
-// GET /books?page=1&limit=5
-router.get("/", async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-
-    const books = await Book.find().skip(skip).limit(limit);
-    const totalBooks = await Book.countDocuments();
-
-    res.status(200).json({
-      page,
-      limit,
-      totalBooks,
-      totalPages: Math.ceil(totalBooks / limit),
-      books,
+    res.status(201).json({
+      success: true,
+      data: newBook,
     });
   } catch (error) {
-    res.status(500).json({ message: "Error fetching books", error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
-// GET /books/:id
+
+/**
+ * @route   GET /books
+ * @desc    Get all books
+ */
+router.get("/", async (req, res) => {
+  try {
+    const books = await Book.find({});
+    res.status(200).json({ success: true, data: books });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * @route   GET /books/:id
+ * @desc    Get a single book by ID
+ */
 router.get("/:id", async (req, res) => {
   try {
     const book = await Book.findById(req.params.id);
-    if (!book) return res.status(404).json({ message: "Book not found" });
-    res.json(book);
+
+    if (!book) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Book not found" });
+    }
+
+    res.status(200).json({ success: true, data: book });
   } catch (error) {
-    res.status(500).json({ message: "Error fetching book", error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
-// PUT /books/:id
+
+/**
+ * @route   PUT /books/:id
+ * @desc    Update a book by ID
+ */
 router.put("/:id", async (req, res) => {
   try {
-    const updatedBook = await Book.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!updatedBook) return res.status(404).json({ message: "Book not found" });
-    res.json({ message: "✅ Book updated", book: updatedBook });
+    const { title, author, publishYear } = req.body;
+
+    // Validation
+    if (!title || !author || !publishYear) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide title, author, and publish year",
+      });
+    }
+
+    const updatedBook = await Book.findByIdAndUpdate(
+      req.params.id,
+      { title, author, publishYear },
+      { new: true } // return updated document
+    );
+
+    if (!updatedBook) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Book not found" });
+    }
+
+    res.status(200).json({ success: true, data: updatedBook });
   } catch (error) {
-    res.status(500).json({ message: "Error updating book", error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
-// DELETE /books/:id
+
+/**
+ * @route   DELETE /books/:id
+ * @desc    Delete a book by ID
+ */
 router.delete("/:id", async (req, res) => {
   try {
     const deletedBook = await Book.findByIdAndDelete(req.params.id);
-    if (!deletedBook) return res.status(404).json({ message: "Book not found" });
-    res.json({ message: "✅ Book deleted successfully" });
+
+    if (!deletedBook) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Book not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Book deleted successfully",
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error deleting book", error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
-
-
-
 
 export default router;

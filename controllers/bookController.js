@@ -7,7 +7,8 @@ export const getBooks = async (req, res) => {
     const books = await Book.find();
     res.json(books);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching books", error: error.message });
+    next(error);
+
   }
 };
 
@@ -18,35 +19,32 @@ export const getBookById = async (req, res) => {
     if (!book) return res.status(404).json({ message: "Book not found" });
     res.json(book);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching book", error: error.message });
+    next(error);
+
   }
 };
 
-// POST (Create new book with validation)
-export const addBook = async (req, res) => {
+
+
+ 
+
+// ✅ Add Book Controller with Validation
+export const addBook = async (req, res, next) => {
+  const { title, author, publishedYear } = req.body;
+
+  // Basic validation
+  if (!title || !author || !publishedYear) {
+    return res.status(400).json({
+      message: "Title, author, and publishedYear are required",
+    });
+  }
+
   try {
-    const { title, author, publicationYear, genre } = req.body;
-
-    const newBook = new Book({
-      title,
-      author,
-      publicationYear,
-      genre,
-    });
-
-    const savedBook = await newBook.save();
-    res.status(201).json({
-      message: "Book created successfully",
-      data: savedBook,
-    });
+    const book = new Book({ title, author, publishedYear });
+    const savedBook = await book.save();
+    res.status(201).json(savedBook);
   } catch (error) {
-    if (error.name === "ValidationError") {
-      return res.status(400).json({
-        message: "Validation failed",
-        errors: error.errors,
-      });
-    }
-    res.status(500).json({ message: "Server error", error: error.message });
+    next(error); // pass error to centralized error handler
   }
 };
 
@@ -73,7 +71,8 @@ export const updateBook = async (req, res) => {
     if (error.name === "ValidationError") {
       return res.status(400).json({ message: "Validation failed", errors: error.errors });
     }
-    res.status(500).json({ message: "Server error", error: error.message });
+    next(error);
+
   }
 };
 
@@ -85,6 +84,7 @@ export const deleteBook = async (req, res) => {
 
     res.json({ message: "Book deleted successfully", book: deletedBook });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    next(error);
+    
   }
 };
